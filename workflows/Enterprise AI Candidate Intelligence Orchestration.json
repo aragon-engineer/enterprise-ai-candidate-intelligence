@@ -1,0 +1,366 @@
+{
+  "name": "Enterprise AI Candidate Intelligence Orchestration",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Enterprise Candidate Intake",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Candidate Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Candidate Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume Upload",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "af14f0dd-44ed-45d5-a216-d4078d79b8a5",
+      "name": "Candidate Intake Portal",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        3632,
+        2700
+      ],
+      "webhookId": "bea9fc42-c54b-4509-8115-f7087491537a"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Resume Upload",
+        "options": {}
+      },
+      "id": "b00d893d-505c-4c6a-bce0-a238ea660cec",
+      "name": "Resume Content Extraction",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3856,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "education_summary",
+              "description": "Summarize the candidate educational background in under 100 words.",
+              "required": true
+            },
+            {
+              "name": "professional_experience",
+              "description": "Summarize recent enterprise work experience in under 100 words.",
+              "required": true
+            },
+            {
+              "name": "technical_skills",
+              "description": "Extract technical skills and frameworks as a bullet list.",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are an enterprise AI extraction engine. Only extract relevant professional information from the resume content."
+        }
+      },
+      "id": "c84f03e4-00d6-444f-aab4-50547b491bb4",
+      "name": "Candidate Skills Extraction",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        4080,
+        2848
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"telephone\": {\n      \"type\": \"string\"\n    },\n    \"city\": {\n      \"type\": \"string\"\n    },\n    \"birthdate\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "59fc3f73-59cc-4eb9-bf85-9038ddc5f514",
+      "name": "Candidate Metadata Extraction",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        4080,
+        2448
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "ced7fe41-ac9e-49dd-8aec-6c479694719b",
+      "name": "Candidate Data Aggregator",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        4432,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "summarizationMethodAndPrompts": {
+            "values": {
+              "combineMapPrompt": "=Generate a concise enterprise candidate intelligence summary using the following data:\n\nCity: {{ $json.output.city }}\nBirthdate: {{ $json.output.birthdate }}\nEducation: {{ $json.output.education_summary }}\nProfessional Experience: {{ $json.output.professional_experience }}\nTechnical Skills: {{ $json.output.technical_skills }}\n\nKeep the response under 100 words.",
+              "prompt": "=Generate a concise enterprise candidate intelligence summary using the following data:\n\nCity: {{ $json.output.city }}\nBirthdate: {{ $json.output.birthdate }}\nEducation: {{ $json.output.education_summary }}\nProfessional Experience: {{ $json.output.professional_experience }}\nTechnical Skills: {{ $json.output.technical_skills }}\n\nKeep the response under 100 words."
+            }
+          }
+        }
+      },
+      "id": "418b82e1-2937-4d2e-8a80-56a33089aa14",
+      "name": "Candidate Intelligence Summary",
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "typeVersion": 2,
+      "position": [
+        4656,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "target_role_definition",
+              "type": "string",
+              "value": "Enterprise organization seeking a Senior AI Solutions Architect with expertise in Azure, AI orchestration, workflow automation, APIs, cloud-native architecture, and enterprise integrations."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "95a5fccf-f15d-418e-80a7-e4b6650263dd",
+      "name": "Target Role Definition",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5008,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Target Role:\n{{ $json.target_role_definition }}\n\nCandidate Summary:\n{{ $('Candidate Intelligence Summary').item.json.response.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an enterprise talent evaluation AI engine.\n\nYour objective is to assess whether the candidate aligns with the target role requirements.\n\nProvide:\n- a candidate_score from 1 to 10\n- an ai_assessment explaining the evaluation rationale\n\nFocus on:\n- technical alignment\n- professional experience\n- role compatibility\n- enterprise readiness"
+            }
+          ]
+        }
+      },
+      "id": "a9b97113-cb49-438d-a694-4ac815a86f7d",
+      "name": "AI Evaluation Engine",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        5232,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"candidate_score\": {\n      \"type\": \"string\"\n    },\n    \"ai_assessment\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+      },
+      "id": "f61d5a3e-904d-4148-9fa8-4c91bb5736d3",
+      "name": "AI Structured Assessment Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        5304,
+        2924
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "fe28de7e-2bba-4c8c-90c5-96e6d240e6c7",
+      "name": "Azure OpenAI Service",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        4152,
+        2672
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Enterprise AI Talent Intelligence\n\nThis workflow demonstrates an AI-orchestrated enterprise pipeline for automated resume processing, candidate intelligence extraction, structured evaluation, and AI-assisted talent assessment.\n\nCore capabilities include:\n- document extraction\n- LLM orchestration\n- structured output parsing\n- AI summarization\n- intelligent evaluation workflows\n- enterprise automation integration",
+        "height": 300,
+        "width": 600,
+        "color": 5
+      },
+      "id": "ffa77486-9294-4ac9-9bf1-4c1bc7b69749",
+      "name": "Architecture Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        2144
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Candidate Intake Portal": {
+      "main": [
+        [
+          {
+            "node": "Resume Content Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Content Extraction": {
+      "main": [
+        [
+          {
+            "node": "Candidate Skills Extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Candidate Metadata Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Skills Extraction": {
+      "main": [
+        [
+          {
+            "node": "Candidate Data Aggregator",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Candidate Metadata Extraction": {
+      "main": [
+        [
+          {
+            "node": "Candidate Data Aggregator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Data Aggregator": {
+      "main": [
+        [
+          {
+            "node": "Candidate Intelligence Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Intelligence Summary": {
+      "main": [
+        [
+          {
+            "node": "Target Role Definition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target Role Definition": {
+      "main": [
+        [
+          {
+            "node": "AI Evaluation Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Service": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Candidate Skills Extraction",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Candidate Intelligence Summary",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Evaluation Engine",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Candidate Metadata Extraction",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Structured Assessment Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Evaluation Engine",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "edd57a81-5137-4a0e-a479-0b16f54dfb33",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21e00eee6bce9d696b8d6104737c764dd778aae3a95a06897b4adcfbbeb29abd"
+  },
+  "id": "qUgzFoptxWPbIniX",
+  "tags": []
+}
