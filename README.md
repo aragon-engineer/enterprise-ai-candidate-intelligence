@@ -1,3 +1,9 @@
+
+![Python](https://img.shields.io/badge/Python-3.x-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![CI](https://img.shields.io/badge/CI-GitHub_Actions-orange)
+
+
 # Enterprise AI Candidate Intelligence
 
 Enterprise-grade AI orchestration platform designed to automate candidate intelligence workflows using LLMs, workflow automation, and scalable enterprise integrations.
